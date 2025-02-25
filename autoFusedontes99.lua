@@ -1,34 +1,32 @@
-_G.autoFuse = true -- Включает/выключает автоматическое слияние. Solara контролирует это значение.
+_G.autoFuse = true -- Включает/выключает автоматическое слияние.
 
 local PET_TO_FUSE = "Pastel Goat" -- Имя питомца для слияния
 
-local FUSE_AMOUNT = 3 -- Количество питомцев для слияния (минимум 3)
+local FUSE_AMOUNT = 3 -- Количество питомцев для слияния
 
-local IS_SHINY = false -- Укажите, является ли питомец Shiny (true/false)
+local IS_SHINY = false -- Является ли питомец Shiny
 
 local PET_TYPE = 0 -- 0: Normal, 1: Golden, 2: Rainbow
 
--- Получаем сервисы и библиотеки
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Library = ReplicatedStorage:WaitForChild("Library")
-
-local LocalPlayer = game:GetService("Players").LocalPlayer
-
 local Network = ReplicatedStorage:WaitForChild("Network")
 
-local pets = require(Library).Save.Get().Inventory.Pet
+local pets = require(ReplicatedStorage.Library).Save.Get().Inventory.Pet
 
 local petId = nil
 
 for id, petData in pairs(pets) do
 
-    if petData["id"] == PET_TO_FUSE and tonumber(petData["pt"]) == PET_TYPE and petData["sh"] == IS_SHINY then
+    if petData.id == PET_TO_FUSE and petData.pt == PET_TYPE and petData.sh == IS_SHINY then
 
         petId = id
 
-        print("Нашел подходящего питомца с ID:", petId)
+        print("Питомец найден: ", petId)
 
         break
 
@@ -38,31 +36,27 @@ end
 
 if not petId then
 
-    print("Питомец не найден! Проверьте конфигурацию.")
+    print("Питомец не найден!")
 
-    _G.autoFuse = false -- Останавливаем скрипт, чтобы не было ошибок
+    _G.autoFuse = false
 
     return
 
 end
 
--- Функция телепортации к FuseMachine.  Поиск сначала Map, затем Map2.
-
 local function teleportToFuseMachine()
 
- local mapName = game:GetService("Workspace"):FindFirstChild("Map") and "Map" or game:GetService("Workspace"):FindFirstChild("Map2") and "Map2"
+    local machine = workspace:FindFirstChild("Map") or workspace:FindFirstChild("Map2")
 
-    if mapName == "Map" then
+    if machine then
 
-      local zonePath = game:GetService("Workspace").Map["28 | Shanty Town"]
+        local fuseMachine = machine:FindFirstChild("28 | Shanty Town") or machine:FindFirstChild("100 | Tech Spawn")
 
-     LocalPlayer.Character.HumanoidRootPart.CFrame = zonePath.INTERACT.Machines.FuseMachine.PadGlow.CFrame
+        if fuseMachine then
 
-    elseif mapName == "Map2" then
+            LocalPlayer.Character:MoveTo(fuseMachine.INTERACT.Machines.FuseMachine.PadGlow.Position)
 
-     local zonePath = game:GetService("Workspace").Map2["100 | Tech Spawn"]
-
-     LocalPlayer.Character.HumanoidRootPart.CFrame = zonePath.INTERACT.Machines.SuperMachine.PadGlow.CFrame
+        end
 
     end
 
@@ -70,15 +64,12 @@ end
 
 teleportToFuseMachine()
 
--- Основной цикл слияния
-
-while _G.autoFuse and petId do -- Добавлена проверка petId
+while _G.autoFuse and petId do
 
     Network.FuseMachine_Activate:InvokeServer({[petId] = FUSE_AMOUNT})
 
-    task.wait(0.5) -- Небольшая задержка
+    task.wait(0.5)
 
 end
 
-print("Автоматическое слияние завершено или остановлено.")
-
+print("Слияние завершено.")
